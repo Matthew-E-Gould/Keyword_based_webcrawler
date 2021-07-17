@@ -14,7 +14,7 @@ ADDRESS_ELEMENT_CONDITION = 'Located at'
 problemLocationLinks = []
 data = []
 
-# time to scapre
+# time to scrape
 for initialLink in initialLinks:
     print('reading '+initialLink) # output
     r = requests.get(initialLink)
