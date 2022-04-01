@@ -336,3 +336,4 @@ ASALocalRun/
 # output files
 ./output
 ./output/*
+data.json
