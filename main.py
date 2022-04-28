@@ -6,7 +6,7 @@ import time
 
 def writeToJSONFile(path, filename, filedata):
     filePathNameWExt = './' + path + '/' + filename + '.json'
-    with open(filePathNameWExt, 'w') as fp:
+    with open(filePathNameWExt, 'w', encoding="utf-8") as fp:  # encoding="utf-8" fixes an issue with accents on characters ... I think
         json.dump(filedata, fp, ensure_ascii=False)
 
 
@@ -68,25 +68,36 @@ quesResponse = input().lower()
 if quesResponse == 'y':
     removeUrlParams = True
 
+# cleanup of response content to be visible content only
+onlyVisibleContent = False
+print("Do you want to only check keywords against visible content? (will run slower) [Y/y/N/n]")
+quesResponse = input().lower()
+if quesResponse == 'y':
+    onlyVisibleContent = True
+
 # wildcard choice stuff here (TBI)
 
 for url in urlsToAccess:
 
     if url[-4:] != '.exe':
 
-        # print('reading '+url)
-        # try:
+        print('reading '+url)
+        try:
             req = requests.get(url, timeout=5)
+            soup = rawSoup = BeautifulSoup(req.content, features="html.parser")
+
+            # query only visible content
+            if onlyVisibleContent:
+                soup = rawSoup.get_text()
 
             # check for keyword
             for keyword in keywords:
-                if keyword in str(req.content).lower():
+                if keyword in str(soup).lower():
                     keywordUrls.append(url)
                     print('Found Keyword!')
 
-            # check for further links
-            soup = BeautifulSoup(req.content, features="html.parser")
-            tags = soup.find_all('a', href=True)
+            # look for more links
+            tags = rawSoup.find_all('a', href=True)
             for tag in tags:
                 href = tag['href']
 
@@ -134,9 +145,10 @@ for url in urlsToAccess:
             # save array to file
             writeToJSONFile('outputs', filename, data)
 
-        # except:
-            # print('exception occurred')
+        except:
+            print('exception occurred')
 
-        # print(len(urlsToAccess))
+        print(len(urlsToAccess))
 
 print('done!')
+
