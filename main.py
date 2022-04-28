@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import json
+import time
 
 
 def writeToJSONFile(path, filename, filedata):
@@ -24,6 +25,7 @@ allowPreWildcards = False
 allowPostWildcards = False
 allowExplorationOfExternalLinks = False
 externalSearchDepth = 0
+filename = str(int(time.time())) + " - data"
 
 # get site to start from
 print("Enter base url you'd like to trawl:")
@@ -40,14 +42,40 @@ while(inp != donePhrase):
     if inp != donePhrase and inp not in keywords:
         keywords.append(inp)
 
+# stay on same site
+askQuestion = False
+searchOtherSites = True
+baseUrl = ''
+baseSiteArr = baseSite.split('/')
+if 'http' in baseSiteArr[0] and ':' in baseSiteArr[0] and len(baseSiteArr) > 3:
+    if '.' in baseSiteArr[2]:
+        baseUrl = baseSiteArr[0] + '//' + baseSiteArr[2]
+        askQuestion = True
+elif '.' in baseSiteArr[0]:
+    baseUrl = baseSiteArr[0]
+    askQuestion = True
+
+if askQuestion:
+    print("Do you want to stay on the same site? (" + baseUrl + ") [Y/y/N/n]")
+    quesResponse = input().lower()
+    if quesResponse == 'y':
+        searchOtherSites = False
+
+# ignore URL params (removes anything after first '?')
+removeUrlParams = False
+print("Do you want to ignore URL params? (anything after a '?' in the URL) [Y/y/N/n]")
+quesResponse = input().lower()
+if quesResponse == 'y':
+    removeUrlParams = True
+
 # wildcard choice stuff here (TBI)
 
 for url in urlsToAccess:
 
     if url[-4:] != '.exe':
 
-        print('reading '+url)
-        try:
+        # print('reading '+url)
+        # try:
             req = requests.get(url, timeout=5)
 
             # check for keyword
@@ -73,15 +101,21 @@ for url in urlsToAccess:
                     hrefURL = href
                     if href[0] == '/' or href[0] == '.':
                         if url[-1] == '/' and href[0] == '/':
-                            hrefURL = url[:-1] + href  # stop // from being added to urls
+                            hrefURL = url[:-1] + href  # stop // from being in fixed urls
                         elif url[-1] != '/' and href[0] != '/':
-                            hrefURL = url + '/' + href  # stops URIs not having an approprite /
+                            hrefURL = url + '/' + href  # stops URIs not having an appropriate /
                         else:
                             hrefURL = url + href
 
+                    if removeUrlParams:
+                        tempHrefURL = hrefURL
+                        hrefURL = tempHrefURL.split('?')[0]
+
+                    # check to see if we've accessed this URL before (should be last check)
                     uniqueLink = hrefURL not in urlsToAccess and hrefURL not in accessedUrls
-                    # implement filters
-                    if uniqueLink and (isUri or isWWW or isHTTP):
+
+                    # Check if we should store URL to be searched later
+                    if uniqueLink and (isUri or isWWW or isHTTP) and (searchOtherSites or baseUrl in hrefURL):
                         print('found link: '+hrefURL)
                         urlsToAccess.append(hrefURL)
 
@@ -98,11 +132,11 @@ for url in urlsToAccess:
             }
 
             # save array to file
-            writeToJSONFile('./', 'data', data)
+            writeToJSONFile('outputs', filename, data)
 
-        except:
-            print('exception occurred')
+        # except:
+            # print('exception occurred')
 
-        print(len(urlsToAccess))
+        # print(len(urlsToAccess))
 
 print('done!')
