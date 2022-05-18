@@ -6,9 +6,17 @@ import time
 
 def writeToJSONFile(path, filename, filedata):
     filePathNameWExt = './' + path + '/' + filename + '.json'
-    with open(filePathNameWExt, 'w', encoding="utf-8") as fp:  # encoding="utf-8" fixes an issue with accents on characters ... I think
+    # encoding="utf-8" fixes an issue with accents on characters ... I think
+    with open(filePathNameWExt, 'w', encoding="utf-8") as fp:
         json.dump(filedata, fp, ensure_ascii=False)
 
+
+def readFromJSONFile(path, filename):
+    filePathNameWExt = './' + path + '/' + filename + '.json'
+    # encoding="utf-8" fixes an issue with accents on characters ... I think
+    with open(filePathNameWExt, 'r', encoding="utf-8") as fp:
+        loadedJson = json.load(fp)
+        return loadedJson
 
 # const
 donePhrase = ""
@@ -27,55 +35,81 @@ allowExplorationOfExternalLinks = False
 externalSearchDepth = 0
 filename = str(int(time.time())) + " - data"
 
-# get site to start from
-print("Enter base url you'd like to trawl:")
-baseSite = input()
-urlsToAccess.append(baseSite)
-print("Enter keyword " + str(len(keywords)) + " that you'd like to search for :")
-inp = input().lower()
-keywords.append(inp)
+# ask user if they want to load last session [TBFI]
+freshScrape = True
+fileToLoad = ''
+jsonContent = {}
+print("Do you want to load a file? (From outputs folder) [Y/y/N/n]")
+quesResponse = input().lower()
+if quesResponse == 'y':
+    freshScrape = False
+    print("Enter the filename you want to load, without the '.json' (CaSe SeNsAtIvE):")
+    fileToLoad = input()
+    try:
+        jsonContent = readFromJSONFile('outputs', fileToLoad)
+    except:
+        print('Error loading file, resuming as a fresh scrape.')
+        freshScrape = True
 
-# getting keywords to look for
-while(inp != donePhrase):
-    print("Enter keyword " + str(len(keywords)) + " that you'd like to search for (type '" + donePhrase + "' when you've entered them all):")
+    if not freshScrape:
+        baseSite = jsonContent['baseSite']
+        keywords = jsonContent['keywords']
+        urlsToAccess = jsonContent['urlsToAccess']
+        accessedUrls = jsonContent['accessedUrls']
+        externalUrls = jsonContent['externalUrls']
+        keywordUrls = jsonContent['keywordUrls']
+
+
+if freshScrape:
+    # get site to start from
+    print("Enter base url you'd like to trawl:")
+    baseSite = input()
+    urlsToAccess.append(baseSite)
+    print("Enter keyword " + str(len(keywords)) + " that you'd like to search for:")
     inp = input().lower()
-    if inp != donePhrase and inp not in keywords:
-        keywords.append(inp)
+    keywords.append(inp)
 
-# stay on same site
-askQuestion = False
-searchOtherSites = True
-baseUrl = ''
-baseSiteArr = baseSite.split('/')
-if 'http' in baseSiteArr[0] and ':' in baseSiteArr[0] and len(baseSiteArr) > 3:
-    if '.' in baseSiteArr[2]:
-        baseUrl = baseSiteArr[0] + '//' + baseSiteArr[2]
+    # getting keywords to look for
+    while(inp != donePhrase):
+        print("Enter keyword " + str(len(keywords)) + " that you'd like to search for (type '" + donePhrase + "' when you've entered them all):")
+        inp = input().lower()
+        if inp != donePhrase and inp not in keywords:
+            keywords.append(inp)
+
+    # stay on same site
+    askQuestion = False
+    searchOtherSites = True
+    baseUrl = ''
+    baseSiteArr = baseSite.split('/')
+    if 'http' in baseSiteArr[0] and ':' in baseSiteArr[0] and len(baseSiteArr) > 3:
+        if '.' in baseSiteArr[2]:
+            baseUrl = baseSiteArr[0] + '//' + baseSiteArr[2]
+            askQuestion = True
+    elif '.' in baseSiteArr[0]:
+        baseUrl = baseSiteArr[0]
         askQuestion = True
-elif '.' in baseSiteArr[0]:
-    baseUrl = baseSiteArr[0]
-    askQuestion = True
 
-if askQuestion:
-    print("Do you want to stay on the same site? (" + baseUrl + ") [Y/y/N/n]")
+    if askQuestion:
+        print("Do you want to stay on the same site? (" + baseUrl + ") [Y/y/N/n]")
+        quesResponse = input().lower()
+        if quesResponse == 'y':
+            searchOtherSites = False
+            # wildcard choice stuff here [TBI]
+
+    # ignore URL params (removes anything after first '?')
+    removeUrlParams = False
+    print("Do you want to ignore URL params? (anything after a '?' in the URL) [Y/y/N/n]")
     quesResponse = input().lower()
     if quesResponse == 'y':
-        searchOtherSites = False
+        removeUrlParams = True
 
-# ignore URL params (removes anything after first '?')
-removeUrlParams = False
-print("Do you want to ignore URL params? (anything after a '?' in the URL) [Y/y/N/n]")
-quesResponse = input().lower()
-if quesResponse == 'y':
-    removeUrlParams = True
+    # cleanup of response content to be visible content only
+    onlyVisibleContent = False
+    print("Do you want to only check keywords against visible content? (will run slower) [Y/y/N/n]")
+    quesResponse = input().lower()
+    if quesResponse == 'y':
+        onlyVisibleContent = True
 
-# cleanup of response content to be visible content only
-onlyVisibleContent = False
-print("Do you want to only check keywords against visible content? (will run slower) [Y/y/N/n]")
-quesResponse = input().lower()
-if quesResponse == 'y':
-    onlyVisibleContent = True
-
-# wildcard choice stuff here (TBI)
 
 for url in urlsToAccess:
 
