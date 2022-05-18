@@ -4,6 +4,11 @@ import json
 import time
 
 
+# to do list:
+# 1: make O-O
+# 2: make UI
+# 3: make clear way to view links with what keywords
+
 def writeToJSONFile(path, filename, filedata):
     filePathNameWExt = './' + path + '/' + filename + '.json'
     # encoding="utf-8" fixes an issue with accents on characters ... I think
@@ -35,7 +40,7 @@ allowExplorationOfExternalLinks = False
 externalSearchDepth = 0
 filename = str(int(time.time())) + " - data"
 
-# ask user if they want to load last session [TBFI]
+# ask user if they want to load last session
 freshScrape = True
 fileToLoad = ''
 jsonContent = {}
@@ -52,12 +57,17 @@ if quesResponse == 'y':
         freshScrape = True
 
     if not freshScrape:
+
         baseSite = jsonContent['baseSite']
         keywords = jsonContent['keywords']
         urlsToAccess = jsonContent['urlsToAccess']
         accessedUrls = jsonContent['accessedUrls']
         externalUrls = jsonContent['externalUrls']
         keywordUrls = jsonContent['keywordUrls']
+
+        searchOtherSites = jsonContent['settings']['searchOtherSites']
+        removeUrlParams = jsonContent['settings']['removeUrlParams']
+        onlyVisibleContent = jsonContent['settings']['onlyVisibleContent']
 
 
 if freshScrape:
@@ -174,6 +184,11 @@ for url in urlsToAccess:
                 'accessedUrls': accessedUrls,
                 'externalUrls': externalUrls,
                 'keywordUrls': keywordUrls,
+                'settings': {
+                    'searchOtherSites': searchOtherSites,
+                    'removeUrlParams': removeUrlParams,
+                    'onlyVisibleContent': onlyVisibleContent,
+                }
             }
 
             # save array to file
