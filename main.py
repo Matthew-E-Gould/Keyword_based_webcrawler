@@ -5,9 +5,12 @@ import time
 
 
 # to do list:
-# 1: make O-O
-# 2: make UI
-# 3: make clear way to view links with what keywords
+# 1: resolve issues around urls appending data when it's going back a couple of links before (../../../urlstuffhere)
+# 2: remove stuff after '#' if they want to remove stuff after '?'
+# 3: make other option to set baseURL to query against
+# 4: make O-O
+# 5: make UI
+# 6: make clear way to view links with what keywords
 
 def writeToJSONFile(path, filename, filedata):
     filePathNameWExt = './' + path + '/' + filename + '.json'
@@ -106,9 +109,9 @@ if freshScrape:
             searchOtherSites = False
             # wildcard choice stuff here [TBI]
 
-    # ignore URL params (removes anything after first '?')
+    # ignore URL params (removes anything after first '?' or '#')
     removeUrlParams = False
-    print("Do you want to ignore URL params? (anything after a '?' in the URL) [Y/y/N/n]")
+    print("Do you want to ignore URL params? (anything after a '?' or '#' in the URL) [Y/y/N/n]")
     quesResponse = input().lower()
     if quesResponse == 'y':
         removeUrlParams = True
@@ -144,6 +147,7 @@ for url in urlsToAccess:
             tags = rawSoup.find_all('a', href=True)
             for tag in tags:
                 href = tag['href']
+                print('recognised href: ' + href)
 
                 # filter out things (pre full URL)
                 if len(href) > 4:
@@ -164,7 +168,8 @@ for url in urlsToAccess:
 
                     if removeUrlParams:
                         tempHrefURL = hrefURL
-                        hrefURL = tempHrefURL.split('?')[0]
+                        secondTempHrefURL = tempHrefURL.split('?')[0]
+                        hrefURL = secondTempHrefURL.split('#')[0]
 
                     # check to see if we've accessed this URL before (should be last check)
                     uniqueLink = hrefURL not in urlsToAccess and hrefURL not in accessedUrls
