@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import time
+import sys
 
 
 # to do list:
@@ -123,7 +124,7 @@ if freshScrape:
     if quesResponse == 'y':
         onlyVisibleContent = True
 
-
+# RUN
 for url in urlsToAccess:
 
     if url[-4:] != '.exe':
@@ -147,7 +148,7 @@ for url in urlsToAccess:
             tags = rawSoup.find_all('a', href=True)
             for tag in tags:
                 href = tag['href']
-                print('recognised href: ' + href)
+                # print('recognised href: ' + href)
 
                 # filter out things (pre full URL)
                 if len(href) > 4:
@@ -158,14 +159,37 @@ for url in urlsToAccess:
 
                     # check href is URL and not URI
                     hrefURL = href
-                    if href[0] == '/' or href[0] == '.':
-                        if url[-1] == '/' and href[0] == '/':
-                            hrefURL = url[:-1] + href  # stop // from being in fixed urls
-                        elif url[-1] != '/' and href[0] != '/':
-                            hrefURL = url + '/' + href  # stops URIs not having an appropriate /
-                        else:
-                            hrefURL = url + href
+                    if href[0] == '/':
+                        hrefURL = baseUrl + href
+                    elif href[0] == '.' and url[-1] == '/':
+                        hrefURL = url + href
+                    elif href[0] == '.' and url[-1] != '/':
+                        hrefURL = url + '/' + href
 
+                    # sorting out extra '/..' to avoid visiting same urls
+                    quickBreak = False  # dev
+                    forceStop = False
+                    splitUrl = hrefURL.split('/')
+                    while '..' in splitUrl and not forceStop:
+                        quickBreak = True  # dev
+                        print(splitUrl)  # dev
+
+                        backIndex = splitUrl.index('..')
+
+                        if backIndex > 1:
+                            splitUrl.pop(backIndex)
+                            splitUrl.pop(backIndex-1)
+                        else:
+                            forceStop = True
+                    hrefURL = '/'.join(splitUrl)
+                    # print(hrefURL)
+
+                    if quickBreak:  # dev
+                        sys.exit('dev exit')  # dev
+
+
+
+                    # removing stuff after # or ? if user wants it to
                     if removeUrlParams:
                         tempHrefURL = hrefURL
                         secondTempHrefURL = tempHrefURL.split('?')[0]
