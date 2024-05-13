@@ -3,6 +3,7 @@ import requests
 import json
 import time
 import sys
+import os
 
 
 # to do list:
@@ -13,15 +14,19 @@ import sys
 # 5: make UI
 # 6: make clear way to view links with what keywords
 
-def writeToJSONFile(path, filename, filedata):
-    filePathNameWExt = './' + path + '/' + filename + '.json'
+def writeToJSONFile(filePath, filename, filedata):
+    filePathNameWExt = './' + filePath + '/' + filename + '.json'
     # encoding="utf-8" fixes an issue with accents on characters ... I think
+
+    if not os.path.isdir('./'+filePath):
+        os.makedirs('./'+filePath) # creates the dir if it doesn't exist
+
     with open(filePathNameWExt, 'w', encoding="utf-8") as fp:
         json.dump(filedata, fp, ensure_ascii=False)
 
 
-def readFromJSONFile(path, filename):
-    filePathNameWExt = './' + path + '/' + filename + '.json'
+def readFromJSONFile(filePath, filename):
+    filePathNameWExt = './' + filePath + '/' + filename + '.json'
     # encoding="utf-8" fixes an issue with accents on characters ... I think
     with open(filePathNameWExt, 'r', encoding="utf-8") as fp:
         loadedJson = json.load(fp)
@@ -119,7 +124,7 @@ if freshScrape:
 
     # cleanup of response content to be visible content only
     onlyVisibleContent = False
-    print("Do you want to only check keywords against visible content? (will run slower) [Y/y/N/n]")
+    print("Do you want to only check keywords against visible content? [Y/y/N/n]")
     quesResponse = input().lower()
     if quesResponse == 'y':
         onlyVisibleContent = True
@@ -130,101 +135,101 @@ for url in urlsToAccess:
     if url[-4:] != '.exe':
 
         print('reading '+url)
-        try:
-            req = requests.get(url, timeout=5)
-            soup = rawSoup = BeautifulSoup(req.content, features="html.parser")
+        # try:
+        req = requests.get(url, timeout=5)
+        soup = rawSoup = BeautifulSoup(req.content, features="html.parser")
 
-            # query only visible content
-            if onlyVisibleContent:
-                soup = rawSoup.get_text()
+        # query only visible content
+        if onlyVisibleContent:
+            soup = rawSoup.get_text()
 
-            # check for keyword
-            for keyword in keywords:
-                if keyword in str(soup).lower():
-                    keywordUrls.append(url)
-                    print('Found Keyword!')
+        # check for keyword
+        for keyword in keywords:
+            if keyword in str(soup).lower():
+                keywordUrls.append(url)
+                print('Found Keyword!')
 
-            # look for more links
-            tags = rawSoup.find_all('a', href=True)
-            for tag in tags:
-                href = tag['href']
-                # print('recognised href: ' + href)
+        # look for more links
+        tags = rawSoup.find_all('a', href=True)
+        for tag in tags:
+            href = tag['href']
+            # print('recognised href: ' + href)
 
-                # filter out things (pre full URL)
-                if len(href) > 4:
+            # filter out things (pre full URL)
+            if len(href) > 4:
 
-                    isUri = href[0] == '/' or href[0] == '.'
-                    isWWW = href[:3] == 'www'
-                    isHTTP = href[:4] == 'http'
+                isUri = href[0] == '/' or href[0] == '.'
+                isWWW = href[:3] == 'www'
+                isHTTP = href[:4] == 'http'
 
-                    # check href is URL and not URI
-                    hrefURL = href
-                    if href[0] == '/':
-                        hrefURL = baseUrl + href
-                    elif href[0] == '.' and url[-1] == '/':
-                        hrefURL = url + href
-                    elif href[0] == '.' and url[-1] != '/':
-                        hrefURL = url + '/' + href
+                # check href is URL and not URI
+                hrefURL = href
+                if href[0] == '/':
+                    hrefURL = baseUrl + href
+                elif href[0] == '.' and url[-1] == '/':
+                    hrefURL = url + href
+                elif href[0] == '.' and url[-1] != '/':
+                    hrefURL = url + '/' + href
 
-                    # sorting out extra '/..' to avoid visiting same urls
-                    quickBreak = False  # dev
-                    forceStop = False
-                    splitUrl = hrefURL.split('/')
-                    while '..' in splitUrl and not forceStop:
-                        quickBreak = True  # dev
-                        print(splitUrl)  # dev
+                # sorting out extra '/..' to avoid visiting same urls
+                quickBreak = False  # dev
+                forceStop = False
+                splitUrl = hrefURL.split('/')
+                while '..' in splitUrl and not forceStop:
+                    quickBreak = True  # dev
+                    print(splitUrl)  # dev
 
-                        backIndex = splitUrl.index('..')
+                    backIndex = splitUrl.index('..')
 
-                        if backIndex > 1:
-                            splitUrl.pop(backIndex)
-                            splitUrl.pop(backIndex-1)
-                        else:
-                            forceStop = True
-                    hrefURL = '/'.join(splitUrl)
-                    # print(hrefURL)
+                    if backIndex > 1:
+                        splitUrl.pop(backIndex)
+                        splitUrl.pop(backIndex-1)
+                    else:
+                        forceStop = True
+                hrefURL = '/'.join(splitUrl)
+                # print(hrefURL)
 
-                    if quickBreak:  # dev
-                        sys.exit('dev exit')  # dev
+                if quickBreak:  # dev
+                    sys.exit('dev exit')  # dev
 
 
 
-                    # removing stuff after # or ? if user wants it to
-                    if removeUrlParams:
-                        tempHrefURL = hrefURL
-                        secondTempHrefURL = tempHrefURL.split('?')[0]
-                        hrefURL = secondTempHrefURL.split('#')[0]
+                # removing stuff after # or ? if user wants it to
+                if removeUrlParams:
+                    tempHrefURL = hrefURL
+                    secondTempHrefURL = tempHrefURL.split('?')[0]
+                    hrefURL = secondTempHrefURL.split('#')[0]
 
-                    # check to see if we've accessed this URL before (should be last check)
-                    uniqueLink = hrefURL not in urlsToAccess and hrefURL not in accessedUrls
+                # check to see if we've accessed this URL before (should be last check)
+                uniqueLink = hrefURL not in urlsToAccess and hrefURL not in accessedUrls
 
-                    # Check if we should store URL to be searched later
-                    if uniqueLink and (isUri or isWWW or isHTTP) and (searchOtherSites or baseUrl in hrefURL):
-                        print('found link: '+hrefURL)
-                        urlsToAccess.append(hrefURL)
+                # Check if we should store URL to be searched later
+                if uniqueLink and (isUri or isWWW or isHTTP) and (searchOtherSites or baseUrl in hrefURL):
+                    print('found link: '+hrefURL)
+                    urlsToAccess.append(hrefURL)
 
-            urlsToAccess.remove(url)
-            accessedUrls.append(url)
+        urlsToAccess.remove(url)
+        accessedUrls.append(url)
 
-            data = {
-                'baseSite': baseSite,
-                'keywords': keywords,
-                'urlsToAccess': urlsToAccess,
-                'accessedUrls': accessedUrls,
-                'externalUrls': externalUrls,
-                'keywordUrls': keywordUrls,
-                'settings': {
-                    'searchOtherSites': searchOtherSites,
-                    'removeUrlParams': removeUrlParams,
-                    'onlyVisibleContent': onlyVisibleContent,
-                }
+        data = {
+            'baseSite': baseSite,
+            'keywords': keywords,
+            'urlsToAccess': urlsToAccess,
+            'accessedUrls': accessedUrls,
+            'externalUrls': externalUrls,
+            'keywordUrls': keywordUrls,
+            'settings': {
+                'searchOtherSites': searchOtherSites,
+                'removeUrlParams': removeUrlParams,
+                'onlyVisibleContent': onlyVisibleContent,
             }
+        }
 
-            # save array to file
-            writeToJSONFile('outputs', filename, data)
+        # save array to file
+        writeToJSONFile('outputs', filename, data)
 
-        except:
-            print('exception occurred')
+        # except:
+        #     print('exception occurred')
 
         print(len(urlsToAccess))
 
